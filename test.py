@@ -35,26 +35,24 @@ def login():
         session.pop('temp', None)
         perma=str(uuid.uuid4())
         session['temp']=username+password+perma
-        return render_template("home.html", sesh_id=session['temp'])
+        return render_template("home2.html", sesh_id=session['temp'])
     if password!=passwd[0]:
         failed_attempts.append('failed')
         a = len(failed_attempts)
-        log(session['temp'],password,username)
+        log(session['temp'],password,username,a)
     return render_template("login.html")
+
 
 @app.route("/home")
 def home():
     return render_template("home.html")
-def log(sesh,p,u):
+def log(sesh,p,u,a):
+    tries="."+str(a)
     sesh_id=str(sesh)
     user=str(u)
     pasw=str(p)
-    f = open("logfile.txt", "a")
-    f.write('failed attempt'+' '+str(sesh)+" "+"username"+" "+str(u)+" "+"password"+" "+str(p))
-    f.write("\n")
-    f.close()
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    cursor.execute("INSERT INTO tests VALUES(%s,%s,%s)",(sesh_id,pasw,user))
+    cursor.execute("INSERT INTO tests VALUES(%s,%s,%s)",(sesh_id+tries,pasw,user))
     mysql.connection.commit()
     count()
 

@@ -5,11 +5,15 @@ from flask_bcrypt import Bcrypt
 import cryptography
 from cryptography.fernet import Fernet
 import re
+import uuid, datetime
+import time
 #user bobmyskrm password bobby
 
 bcrypt = Bcrypt()
 
 app = Flask(__name__)
+
+app.config['temp']=datetime.timedelta(days=1)
 # Change this to your secret key (can be anything, it's for extra protection)
 app.secret_key = 'your secret key'
 # Enter your database connection details below
@@ -18,11 +22,18 @@ app.config['MYSQL_USER'] = 'root'
 # Password below must be changed to match root password specified at server installation
 app.config['MYSQL_PASSWORD'] = 'ihatenyp1234'
 app.config['MYSQL_DB'] = 'pythonlogin'
+time_list=[]
 #DO NOTE THAT THE MYSQL SERVER INSTANCE IN THE LAB IS RUNNING ON PORT 3360.
 #Please make necessary change to the above MYSQL_PORT config
 app.config['MYSQL_PORT'] = 3306
 # Intialize MySQL
 mysql = MySQL(app)
+failed_attempts=[]
+@app.route("/")
+def first():
+    myuuid = str(uuid.uuid4())
+    session['temp'] = "temp" + myuuid
+    return render_template("index.html")
 @app.route('/login', methods=['GET', 'POST'])
 def login():
  msg = ''
@@ -50,21 +61,37 @@ def login():
            f=Fernet(key)
            # Redirect to home page
            decrypted_email=f.decrypt(encrypted_email)
+           session.pop('temp', None)
+           expiry()
+           #perma = str(uuid.uuid4())
+           #session['temp'] = username + password + perma
            return 'Logged in successfully! My email: ' + decrypted_email.decode()
          else:
            # Account doesn’t exist or username/password incorrect
-             msg = 'Incorrect username/password!'
+           failed_attempts.append('failed')
+           a = len(failed_attempts)
+           logging(session['temp'], password, username, a)
            # Show the login form with message (if any)
  return render_template('index.html',msg='')
+
+
+def logging(sesh,p,u,a):
+    tries = "." + str(a)
+    sesh_id = str(sesh)
+    user = str(u)
+    pasw = str(p)
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("INSERT INTO tests VALUES(%s,%s,%s)", (sesh_id + tries, pasw, user))
+    mysql.connection.commit()
 
 @app.route('/MyWebApp/logout')
 def logout():
 # Remove session data, this will log the user out
- session.pop('loggedin', None)
- session.pop('id', None)
- session.pop('username', None)
+  session.pop('loggedin', None)
+  session.pop('id', None)
+  session.pop('username', None)
 # Redirect to login page
- return redirect(url_for('login'))
+  return redirect(url_for('login'))
 
 # http://localhost:5000/MyWebApp/register - this will be the registration page, we need to use both
 #GET and POST requests
@@ -86,8 +113,18 @@ def register():
         email = email.encode()
         encrypted_email=f.encrypt(email)
         hashpwd=bcrypt.generate_password_hash(password)
+        CT=time.localtime()
+        yr=str(CT.tm_year)
+        day=str(CT.tm_mday)
+        month=str(CT.tm_mon)
+        time_list=[yr,int(month)+3,day]
+        P_yr=str(time_list[0])
+        P_month=str(time_list[1])
+        P_day=str(time_list[2])
+        P_sql=P_yr+"-"+P_month+"-"+P_day
+        #write some sql code to store this into database under user's username
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        cursor.execute('INSERT INTO accounts VALUES (NULL, %s, %s, %s)', (username, hashpwd, encrypted_email,))
+        cursor.execute('INSERT INTO accounts VALUES (NULL, %s, %s, %s, %s)', (username, hashpwd, encrypted_email,P_sql))
         mysql.connection.commit()
         msg = 'You have successfully registered!'
     elif request.method == 'POST':
@@ -95,6 +132,24 @@ def register():
         msg = 'Please fill out the form!'
 # Show registration form with message (if any)
     return render_template('register.html', msg=msg)
+
+def expiry():
+   #this should retrieve the data from sql
+   CT = time.localtime()
+   yr = str(CT.tm_year)
+   day = str(CT.tm_mday)
+   month = str(CT.tm_mon)
+   date_sql=yr+"-"+month+"-"+day
+   U_name = session['username']
+   cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+   cursor.execute("SELECT * FROM accounts WHERE username = %s", (U_name))
+   accts = cursor.fetchone()
+   expiration=accts["passwd_expiry"]
+   if date_sql == str(expiration):
+       pass
+   else:
+       pass
+
 
 @app.route('/MyWebApp/home')
 def home():
