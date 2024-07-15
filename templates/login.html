@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<form action="{{ url_for('login')}}" method="post">
+    <label for="username">Username:</label>
+    <input id="username" type="text" name="username">
+    <label for="password">Password:</label>
+    <input id="password" type="text" name="password">
+    <button type="submit">SUBMIT</button>
+</form>
+<p>{{ temp_sesh }}</p>
+<button><a href="http://127.0.0.1:5000/home">HOME</a></button>
+</body>
+</html>
