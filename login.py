@@ -5,6 +5,7 @@ from flask_bcrypt import Bcrypt
 import cryptography
 from cryptography.fernet import Fernet
 import re
+from datetime import datetime
 import uuid, datetime
 import time
 #user bobmyskrm password bobby
@@ -62,7 +63,7 @@ def login():
            # Redirect to home page
            decrypted_email=f.decrypt(encrypted_email)
            session.pop('temp', None)
-           expiry()
+           expiry(username)
            #perma = str(uuid.uuid4())
            #session['temp'] = username + password + perma
            return 'Logged in successfully! My email: ' + decrypted_email.decode()
@@ -117,7 +118,7 @@ def register():
         yr=str(CT.tm_year)
         day=str(CT.tm_mday)
         month=str(CT.tm_mon)
-        time_list=[yr,int(month)+3,day]
+        time_list=[yr,int(month),day]
         P_yr=str(time_list[0])
         P_month=str(time_list[1])
         P_day=str(time_list[2])
@@ -133,23 +134,35 @@ def register():
 # Show registration form with message (if any)
     return render_template('register.html', msg=msg)
 
-def expiry():
+def expiry(U_name):
    #this should retrieve the data from sql
-   CT = time.localtime()
-   yr = str(CT.tm_year)
-   day = str(CT.tm_mday)
-   month = str(CT.tm_mon)
-   date_sql=yr+"-"+month+"-"+day
-   U_name = session['username']
-   cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-   cursor.execute("SELECT * FROM accounts WHERE username = %s", (U_name))
-   accts = cursor.fetchone()
-   expiration=accts["passwd_expiry"]
-   if date_sql == str(expiration):
-       pass
-   else:
-       pass
+   if request.method == 'POST' and 'username':
+       # Create variables for easy access
+       #U_name = request.form['username']
+       CT = time.localtime()
+       yr = str(CT.tm_year)
+       day = str(CT.tm_mday)
+       month = str(CT.tm_mon)
+       # date_sql=yr+"-"+month+"-"+day
+       date_sql = "2024-07-15"
+       cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+       cursor.execute('SELECT * FROM accounts WHERE username = %s', (U_name,))
+       accts = cursor.fetchone()
+       expiration_date = accts["passwd_expiry"]
+       expiration=expiration_date.strftime('%Y-%m-%d')
+       print(type(expiration))
+       print(expiration)
+       if date_sql == expiration_date:
+           change(U_name=U_name)
+       else:
+           pass
 
+
+@app.route('/update', methods=['GET', 'POST'])
+def change(U_name):
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute('DELETE * FROM accounts WHERE username = %s', (U_name))
+    return redirect(url_for('register'))
 
 @app.route('/MyWebApp/home')
 def home():
