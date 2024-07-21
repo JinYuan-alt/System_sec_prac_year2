@@ -141,8 +141,17 @@ def update():
       username=request.form['username']
       password = request.form['password']
       hashpwd = bcrypt.generate_password_hash(password)
+      CT = time.localtime()
+      yr = str(CT.tm_year)
+      day = str(CT.tm_mday)
+      month = str(CT.tm_mon)
+      time_list = [yr, int(month), day]
+      P_yr = str(time_list[0])
+      P_month = str(time_list[1])
+      P_day = str(time_list[2])
+      P_sql = P_yr + "-" + P_month + "-" + P_day
       cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-      cursor.execute('UPDATE accounts SET username=%s, password=%s where username=%s', (username, hashpwd,username))
+      cursor.execute('UPDATE accounts SET username=%s, password=%s, passwd_expiry=%s where username=%s', (username, hashpwd, P_sql, username))
       mysql.connection.commit()
       return render_template('home.html')
     return render_template('update.html')
