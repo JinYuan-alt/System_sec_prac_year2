@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Login</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.1/css/all.css">
+</head>
+<body>
+<div class="login">
+<h1>Login</h1>
+<div class="links">
+<a href="{{ url_for('update') }}" class="active">Update</a>
+</div>
+<form action="{{ url_for('update') }}" method="post">
+<label for="username"><i class="fas fa-user"></i></label>
+<input type="text" name="username" placeholder="Username" id="username"
+required>
+<label for="password">|
+<i class="fas fa-lock"></i></label>
+<input type="password" name="password" placeholder="Password" id="password"
+required><div class="msg">{{ msg }}</div>
+<input type="submit" value="Login">
+<div></div>
+    <button><a href="http://127.0.0.1:5000/MyWebApp/logout"></a></button>
+</form>
+</div>
+</body>
+</html>

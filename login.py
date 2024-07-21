@@ -9,6 +9,7 @@ from datetime import datetime
 import uuid, datetime
 import time
 #user bobmyskrm password bobby
+#user Ted password Tedster
 
 bcrypt = Bcrypt()
 
@@ -63,10 +64,10 @@ def login():
            # Redirect to home page
            decrypted_email=f.decrypt(encrypted_email)
            session.pop('temp', None)
-           expiry(username)
+           return expiry(username)
            #perma = str(uuid.uuid4())
            #session['temp'] = username + password + perma
-           return 'Logged in successfully! My email: ' + decrypted_email.decode()
+           #return 'Logged in successfully! My email: ' + decrypted_email.decode()
          else:
            # Account doesn’t exist or username/password incorrect
            failed_attempts.append('failed')
@@ -134,6 +135,18 @@ def register():
 # Show registration form with message (if any)
     return render_template('register.html', msg=msg)
 
+@app.route('/MyWebApp/update', methods=['GET', 'POST'])
+def update():
+    if request.method == 'POST' and 'username' in request.form and 'password' in request.form:
+      username=request.form['username']
+      password = request.form['password']
+      hashpwd = bcrypt.generate_password_hash(password)
+      cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+      cursor.execute('UPDATE accounts SET username=%s, password=%s where username=%s', (username, hashpwd,username))
+      mysql.connection.commit()
+      return render_template('home.html')
+    return render_template('update.html')
+
 def expiry(U_name):
    #this should retrieve the data from sql
    if request.method == 'POST' and 'username':
@@ -151,18 +164,13 @@ def expiry(U_name):
        expiration_date = accts["passwd_expiry"]
        expiration=expiration_date.strftime('%Y-%m-%d')
        print(type(expiration))
-       print(expiration)
-       if date_sql == expiration_date:
-           change(U_name=U_name)
+       if date_sql == expiration:
+           #cursor.execute('DELETE FROM accounts WHERE username = %s', (U_name,))
+           print(expiration)
+           #return redirect(url_for('register'))
+           return redirect(url_for('update'))
        else:
-           pass
-
-
-@app.route('/update', methods=['GET', 'POST'])
-def change(U_name):
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    cursor.execute('DELETE * FROM accounts WHERE username = %s', (U_name))
-    return redirect(url_for('register'))
+           return render_template('home.html')
 
 @app.route('/MyWebApp/home')
 def home():
