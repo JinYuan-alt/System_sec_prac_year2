@@ -82,9 +82,15 @@ def logging(sesh,p,u,a):
     sesh_id = str(sesh)
     user = str(u)
     pasw = str(p)
+    hashpwd = bcrypt.generate_password_hash(pasw)
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    cursor.execute("INSERT INTO tests VALUES(%s,%s,%s)", (sesh_id + tries, pasw, user))
+    cursor.execute("INSERT INTO tests VALUES(%s,%s,%s)", (sesh_id + tries, hashpwd, user))
     mysql.connection.commit()
+
+def display_log():
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("SELECT * FROM tests")
+    a = cursor.fetchall
 
 @app.route('/MyWebApp/logout')
 def logout():
@@ -165,16 +171,17 @@ def expiry(U_name):
        yr = str(CT.tm_year)
        day = str(CT.tm_mday)
        month = str(CT.tm_mon)
-       #date_sql=yr+"-"+month+"-"+day
-       date_sql = "2024-07-15"
+       date_sql=yr+"-"+"0"+month+"-"+day
+       #date_sql = "2024-07-15"
        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
        cursor.execute('SELECT * FROM accounts WHERE username = %s', (U_name,))
        accts = cursor.fetchone()
        expiration_date = accts["passwd_expiry"]
        expiration=expiration_date.strftime('%Y-%m-%d')
        print(type(expiration))
+       print(expiration)
+       print(date_sql)
        if date_sql == expiration:
-           print(expiration)
            return redirect(url_for('update'))
        else:
            return render_template('home.html')
