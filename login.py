@@ -9,7 +9,7 @@ from datetime import datetime
 import uuid, datetime
 import time
 #user bobmyskrm password bobby
-#user Ted password Tedster
+#user Ted password Teddy
 
 bcrypt = Bcrypt()
 
@@ -165,7 +165,7 @@ def expiry(U_name):
        yr = str(CT.tm_year)
        day = str(CT.tm_mday)
        month = str(CT.tm_mon)
-       # date_sql=yr+"-"+month+"-"+day
+       #date_sql=yr+"-"+month+"-"+day
        date_sql = "2024-07-15"
        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
        cursor.execute('SELECT * FROM accounts WHERE username = %s', (U_name,))
@@ -174,9 +174,7 @@ def expiry(U_name):
        expiration=expiration_date.strftime('%Y-%m-%d')
        print(type(expiration))
        if date_sql == expiration:
-           #cursor.execute('DELETE FROM accounts WHERE username = %s', (U_name,))
            print(expiration)
-           #return redirect(url_for('register'))
            return redirect(url_for('update'))
        else:
            return render_template('home.html')
