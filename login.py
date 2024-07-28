@@ -125,7 +125,10 @@ def register():
         yr=str(CT.tm_year)
         day=str(CT.tm_mday)
         month=str(CT.tm_mon)
-        time_list=[yr,int(month),day]
+        time_list=[yr,int(month)+1,day]
+        if int(month)>12:
+            time_list[0]=int(yr)+1
+            time_list[1]=1
         P_yr=str(time_list[0])
         P_month=str(time_list[1])
         P_day=str(time_list[2])
@@ -151,7 +154,10 @@ def update():
       yr = str(CT.tm_year)
       day = str(CT.tm_mday)
       month = str(CT.tm_mon)
-      time_list = [yr, int(month), day]
+      time_list = [yr, int(month)+1, day]
+      if int(month) > 12:
+          time_list[0] = int(yr) + 1
+          time_list[1] = 1
       P_yr = str(time_list[0])
       P_month = str(time_list[1])
       P_day = str(time_list[2])
@@ -171,20 +177,29 @@ def expiry(U_name):
        yr = str(CT.tm_year)
        day = str(CT.tm_mday)
        month = str(CT.tm_mon)
-       date_sql=yr+"-"+"0"+month+"-"+day
+       if int(month)>9:
+         date_sql=yr+"-"+month+"-"+day
+       else: date_sql=yr+"-"+"0"+month+"-"+day
        #date_sql = "2024-07-15"
        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
        cursor.execute('SELECT * FROM accounts WHERE username = %s', (U_name,))
        accts = cursor.fetchone()
        expiration_date = accts["passwd_expiry"]
        expiration=expiration_date.strftime('%Y-%m-%d')
-       print(type(expiration))
-       print(expiration)
-       print(date_sql)
+       year=expiration[0:4]
+       month=expiration[5:]
        if date_sql == expiration:
            return redirect(url_for('update'))
        else:
            return render_template('home.html')
+
+def admin_view():
+    if request.method == 'POST' and request.form['logs'] == 'logging':
+      cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+      cursor.execute('SELECT * FROM tests')
+      logs=cursor.fetchall
+      return render_template('admin_view.html', logs=logs)
+    return render_template('admin_view.html')
 
 @app.route('/MyWebApp/home')
 def home():

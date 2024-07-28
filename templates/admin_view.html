@@ -1,0 +1,17 @@
+{% extends 'layout.html' %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<h2>SQL table</h2>
+<form action="{{url_for admin_view}}">
+    <label for="logs">Push to view admin logs</label>
+    <input id="logs" type="button" name="logs" value="logging">
+</form>
+<table border="1" cellpadding="5" cellspacing="5">
+    {% for row in data %}
+        <tr>
+        {% for d in row %}
+            <td>{{ d }}</td>
+        {% endfor %}
+        </tr>
+    {% endfor %}
+</table>
