@@ -2,12 +2,12 @@
 {% block title %}Home{% endblock %}
 {% block content %}
 <h2>SQL table</h2>
-<form action="{{url_for admin_view}}">
+<form action="{{ url_for('admin_view') }}" method="post">
     <label for="logs">Push to view admin logs</label>
     <input id="logs" type="button" name="logs" value="logging">
 </form>
 <table border="1" cellpadding="5" cellspacing="5">
-    {% for row in data %}
+    {% for row in logs %}
         <tr>
         {% for d in row %}
             <td>{{ d }}</td>
@@ -15,3 +15,4 @@
         </tr>
     {% endfor %}
 </table>
+{% endblock %}

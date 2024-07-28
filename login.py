@@ -192,18 +192,20 @@ def expiry(U_name):
        e_day=int(expiration[8:])
        if date_sql == expiration or int(yr)>e_year:
            return redirect(url_for('update'))
-       if int(month)>e_mnth or int(day)>e_day:
+       if int(month)>e_mnth and int(day)>e_day:
            return redirect(url_for('update'))
        else:
            return render_template('home.html')
 
+@app.route('/MyWebApp/admin_view', methods=['GET','POST'])
 def admin_view():
-    if request.method == 'POST' and request.form['logs'] == 'logging':
-      cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-      cursor.execute('SELECT * FROM tests')
-      logs=cursor.fetchall
-      return render_template('admin_view.html', logs=logs)
-    return render_template('admin_view.html')
+    if 'loggedin' in session:
+      if request.method == 'POST' and request.form['logs'] == 'logging':
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute('SELECT * FROM tests')
+        logs=cursor.fetchall()
+        return render_template('admin.html', logs=logs)
+    return render_template('admin.html')
 
 @app.route('/MyWebApp/home')
 def home():
