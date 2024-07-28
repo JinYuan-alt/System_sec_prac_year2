@@ -1,3 +1,9 @@
-To integrate the password expiry just remember to put return expiry() at very end of login()
-just change stylesheet for the update.html file 
-for me-> REMEMBER TO ADD THE +3 TO MONTHS 
+To integrate the password expiry remember to put return expiry(username) 
+at very end of login() before the else statement. 
+
+also remember to plug the code i wrote into register() func. 
+
+Then just plug the update() func and expiry(U_name) functions anywhere
+
+change stylesheet for the update.html file 
+i will start on how to view logging on html soon
