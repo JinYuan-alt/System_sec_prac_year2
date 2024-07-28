@@ -8,8 +8,9 @@ import re
 from datetime import datetime
 import uuid, datetime
 import time
-#user bobmyskrm password bobby
+#user Karen password Kimmy
 #user Ted password Teddy
+
 
 bcrypt = Bcrypt()
 
@@ -126,7 +127,7 @@ def register():
         day=str(CT.tm_mday)
         month=str(CT.tm_mon)
         time_list=[yr,int(month)+1,day]
-        if int(month)>12:
+        if int(month)>=12:
             time_list[0]=int(yr)+1
             time_list[1]=1
         P_yr=str(time_list[0])
@@ -155,7 +156,7 @@ def update():
       day = str(CT.tm_mday)
       month = str(CT.tm_mon)
       time_list = [yr, int(month)+1, day]
-      if int(month) > 12:
+      if int(month) >= 12:
           time_list[0] = int(yr) + 1
           time_list[1] = 1
       P_yr = str(time_list[0])
@@ -180,15 +181,18 @@ def expiry(U_name):
        if int(month)>9:
          date_sql=yr+"-"+month+"-"+day
        else: date_sql=yr+"-"+"0"+month+"-"+day
-       #date_sql = "2024-07-15"
+       #date_sql = "2024-08-15"
        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
        cursor.execute('SELECT * FROM accounts WHERE username = %s', (U_name,))
        accts = cursor.fetchone()
        expiration_date = accts["passwd_expiry"]
        expiration=expiration_date.strftime('%Y-%m-%d')
-       year=expiration[0:4]
-       month=expiration[5:]
-       if date_sql == expiration:
+       e_year=int(expiration[0:4])
+       e_mnth=int(expiration[5:7])
+       e_day=int(expiration[8:])
+       if date_sql == expiration or int(yr)>e_year:
+           return redirect(url_for('update'))
+       if int(month)>e_mnth or int(day)>e_day:
            return redirect(url_for('update'))
        else:
            return render_template('home.html')
