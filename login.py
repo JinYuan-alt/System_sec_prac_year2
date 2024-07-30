@@ -197,14 +197,18 @@ def expiry(U_name):
        else:
            return render_template('home.html')
 
-@app.route('/MyWebApp/admin_view', methods=['GET','POST'])
+@app.route('/MyWebApp/admin', methods=['GET','POST'])
 def admin_view():
     if 'loggedin' in session:
       if request.method == 'POST' and request.form['logs'] == 'logging':
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        cursor.execute('SELECT * FROM tests')
+        cursor.execute('SELECT session_id FROM tests')
         logs=cursor.fetchall()
-        return render_template('admin.html', logs=logs)
+        cursor.execute('SELECT passwd from tests')
+        passwd=cursor.fetchall()
+        p=passwd.split('session_id')
+        l=logs.split('passwd')
+        return render_template('admin.html', logs=l, passwd=p)
     return render_template('admin.html')
 
 @app.route('/MyWebApp/home')

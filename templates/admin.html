@@ -4,13 +4,15 @@
 <h2>SQL table</h2>
 <form action="{{ url_for('admin_view') }}" method="post">
     <label for="logs">Push to view admin logs</label>
-    <input id="logs" type="button" name="logs" value="logging">
+    <input id="logs" type="submit" name="logs" value="logging">
 </form>
 <table border="1" cellpadding="5" cellspacing="5">
     {% for row in logs %}
         <tr>
         {% for d in row %}
-            <td>{{ d }}</td>
+            <td>{{ logs }}</td>
+
+
         {% endfor %}
         </tr>
     {% endfor %}
