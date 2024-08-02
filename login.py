@@ -8,8 +8,10 @@ import re
 from datetime import datetime
 import uuid, datetime
 import time
+
 #user Karen password Kimmy
 #user Ted password Teddy
+
 
 
 bcrypt = Bcrypt()
@@ -32,6 +34,7 @@ app.config['MYSQL_PORT'] = 3306
 # Intialize MySQL
 mysql = MySQL(app)
 failed_attempts=[]
+
 @app.route("/")
 def first():
     myuuid = str(uuid.uuid4())
