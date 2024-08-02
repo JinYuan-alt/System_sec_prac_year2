@@ -26,7 +26,7 @@ app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
 # Password below must be changed to match root password specified at server installation
 app.config['MYSQL_PASSWORD'] = 'ihatenyp1234'
-app.config['MYSQL_DB'] = 'pythonlogin'
+app.config['MYSQL_DB'] = 'pythonlogin2'
 time_list=[]
 #DO NOTE THAT THE MYSQL SERVER INSTANCE IN THE LAB IS RUNNING ON PORT 3360.
 #Please make necessary change to the above MYSQL_PORT config
@@ -137,9 +137,10 @@ def register():
         P_month=str(time_list[1])
         P_day=str(time_list[2])
         P_sql=P_yr+"-"+P_month+"-"+P_day
+        R_sql=yr+"-"+month+"-"+day
         #write some sql code to store this into database under user's username
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        cursor.execute('INSERT INTO accounts VALUES (NULL, %s, %s, %s, %s)', (username, hashpwd, encrypted_email,P_sql))
+        cursor.execute('INSERT INTO accounts VALUES (NULL, %s, %s, %s, %s, %s, %s)', (username, hashpwd, encrypted_email, R_sql ,P_sql, key))
         mysql.connection.commit()
         msg = 'You have successfully registered!'
     elif request.method == 'POST':
@@ -167,7 +168,7 @@ def update():
       P_day = str(time_list[2])
       P_sql = P_yr + "-" + P_month + "-" + P_day
       cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-      cursor.execute('UPDATE accounts SET username=%s, password=%s, passwd_expiry=%s where username=%s', (username, hashpwd, P_sql, username))
+      cursor.execute('UPDATE accounts SET username=%s, password=%s, passwd_expiry_date=%s where username=%s', (username, hashpwd, P_sql, username))
       mysql.connection.commit()
       return render_template('home.html')
     return render_template('update.html')
@@ -181,21 +182,24 @@ def expiry(U_name):
        yr = str(CT.tm_year)
        day = str(CT.tm_mday)
        month = str(CT.tm_mon)
-       if int(month)>9:
-         date_sql=yr+"-"+month+"-"+day
-       else: date_sql=yr+"-"+"0"+month+"-"+day
+       date_sql=yr+"-"+month+"-"+day
        #date_sql = "2024-08-15"
        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
        cursor.execute('SELECT * FROM accounts WHERE username = %s', (U_name,))
        accts = cursor.fetchone()
-       expiration_date = accts["passwd_expiry"]
+       expiration_date = accts["password_expiry_date"]
        expiration=expiration_date.strftime('%Y-%m-%d')
-       e_year=int(expiration[0:4])
-       e_mnth=int(expiration[5:7])
-       e_day=int(expiration[8:])
-       if date_sql == expiration or int(yr)>e_year:
+       print(expiration[0:10])
+       e=expiration.split("-")
+       print(e)
+       e_yr=e[0]
+       e_month=e[1]
+       e_day=e[2]
+       print(e_day,e_month,e_yr)
+       print(date_sql)
+       if date_sql == expiration[0:10] or int(e_yr)<int(yr):
            return redirect(url_for('update'))
-       if int(month)>e_mnth and int(day)>e_day:
+       if int(e_day)<int(day) and int(e_month)<int(month):
            return redirect(url_for('update'))
        else:
            return render_template('home.html')
