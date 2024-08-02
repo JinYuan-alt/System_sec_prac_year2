@@ -78,6 +78,8 @@ def login():
            a = len(failed_attempts)
            logging(session['temp'], password, username, a)
            # Show the login form with message (if any)
+     else:
+         return render_template('register.html')
  return render_template('index.html',msg='')
 
 
