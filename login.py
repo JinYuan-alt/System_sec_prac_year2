@@ -11,7 +11,7 @@ import time
 
 #user Karen password Kimmy
 #user Ted password Teddy
-
+#Bobmyskrm password Bobby
 
 
 bcrypt = Bcrypt()
@@ -172,7 +172,7 @@ def update():
       cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
       cursor.execute('UPDATE accounts SET username=%s, password=%s, passwd_expiry_date=%s where username=%s', (username, hashpwd, P_sql, username))
       mysql.connection.commit()
-      return render_template('home.html')
+      return render_template('home2.html')
     return render_template('update.html')
 
 def expiry(U_name):
@@ -204,7 +204,7 @@ def expiry(U_name):
        if int(e_day)<int(day) and int(e_month)<int(month):
            return redirect(url_for('update'))
        else:
-           return render_template('home.html')
+           return render_template('home2.html')
 
 @app.route('/MyWebApp/admin', methods=['GET','POST'])
 def admin_view():
@@ -221,7 +221,7 @@ def home():
 # Check if user is loggedin
    if 'loggedin' in session:
 # User is loggedin show them the home page
-     return render_template('home.html', username=session['username'])
+     return render_template('home2.html', username=session['username'])
 # User is not loggedin redirect to login page
    return redirect(url_for('login'))
 
@@ -234,9 +234,23 @@ def profile():
       cursor.execute('SELECT * FROM accounts WHERE id = %s', (session['id'],))
       account = cursor.fetchone()
 # Show the profile page with account info
-      return render_template('profile.html', account=account)
+      return render_template('account.html', account=account)
 # User is not loggedin redirect to login page
    return redirect(url_for('login'))
+
+@app.route('/MyWebApp/AdminProfile')
+def Admin_profile():
+# Check if user is loggedin
+   if 'loggedin' in session:
+# We need all the account info for the user so we can display it on the profile page
+      cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+      cursor.execute('SELECT * FROM accounts WHERE id = %s', (session['id'],))
+      account = cursor.fetchone()
+# Show the profile page with account info
+      return render_template('Adminprofile.html', account=account)
+# User is not loggedin redirect to login page
+   return redirect(url_for('login'))
+
 
 if __name__== '__main__':
     app.run()
