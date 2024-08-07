@@ -10,7 +10,7 @@ import uuid, datetime
 import time
 
 #user Karen password Kimmy
-#user Ted password Teddy
+#user Ted password Teddy (to present expiry date working)
 #Bobmyskrm password Bobby
 
 
@@ -153,8 +153,9 @@ def register():
 
 @app.route('/MyWebApp/update', methods=['GET', 'POST'])
 def update():
+    msg=''
     if request.method == 'POST' and 'username' in request.form and 'password' in request.form:
-      username=request.form['username']
+      username= request.form['username']
       password = request.form['password']
       hashpwd = bcrypt.generate_password_hash(password)
       CT = time.localtime()
@@ -162,6 +163,7 @@ def update():
       day = str(CT.tm_mday)
       month = str(CT.tm_mon)
       time_list = [yr, int(month)+1, day]
+      E_sql=yr+"-"+month+"-"+day
       if int(month) >= 12:
           time_list[0] = int(yr) + 1
           time_list[1] = 1
@@ -170,10 +172,15 @@ def update():
       P_day = str(time_list[2])
       P_sql = P_yr + "-" + P_month + "-" + P_day
       cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-      cursor.execute('UPDATE accounts SET username=%s, password=%s, passwd_expiry_date=%s where username=%s', (username, hashpwd, P_sql, username))
+      cursor.execute('SELECT * FROM accounts WHERE username=%s',(username,))
+      check = cursor.fetchone()
+      ogP=check['password']
+      if bcrypt.check_password_hash(ogP,password)==True:
+          return redirect(url_for('update'))
+      else: cursor.execute('UPDATE accounts SET username=%s, password=%s, password_register_date=%s, password_expiry_date=%s where username=%s', (username, hashpwd, E_sql, P_sql, username))
       mysql.connection.commit()
       return render_template('home2.html')
-    return render_template('update.html')
+    return render_template('update.html',msg='will refresh if password is same as past one')
 
 def expiry(U_name):
    #this should retrieve the data from sql
@@ -184,7 +191,11 @@ def expiry(U_name):
        yr = str(CT.tm_year)
        day = str(CT.tm_mday)
        month = str(CT.tm_mon)
-       date_sql=yr+"-"+month+"-"+day
+       if int(month)<10:
+           month="0"+str(CT.tm_mon)
+       if int(day)<10:
+           day="0"+str(CT.tm_mday)
+       date_sql = yr + "-" + month + "-" + day
        #date_sql = "2024-08-15"
        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
        cursor.execute('SELECT * FROM accounts WHERE username = %s', (U_name,))
@@ -257,3 +268,4 @@ if __name__== '__main__':
 
 # http://localhost:5000/login - this will be the login page, we need to use both GET and POST
 #requests
+
