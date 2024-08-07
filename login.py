@@ -60,13 +60,13 @@ def login():
            session['id'] = account['id']
            session['username'] = account['username']
 
-           encrypted_email=account['email'].encode()
-           file=open('symmetric.key','rb')
-           key=file.read()
-           file.close()
-           f=Fernet(key)
+           #encrypted_email=account['email'].encode()
+           #file=open('symmetric.key','rb')
+           #key=file.read()
+           #file.close()
+           #f=Fernet(key)
            # Redirect to home page
-           decrypted_email=f.decrypt(encrypted_email)
+           #decrypted_email=f.decrypt(encrypted_email)
            session.pop('temp', None)
            return expiry(username)
            #perma = str(uuid.uuid4())
@@ -119,7 +119,6 @@ def register():
         username = request.form['username']
         password = request.form['password']
         email = request.form['email']
-
         key = Fernet.generate_key()
         with open("symmetric.key","wb") as fo:
             fo.write(key)
