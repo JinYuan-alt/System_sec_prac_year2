@@ -59,14 +59,17 @@ def login():
            session['loggedin'] = True
            session['id'] = account['id']
            session['username'] = account['username']
-
-           #encrypted_email=account['email'].encode()
+           cursor.execute('SELECT * FROM accounts WHERE username=%s',(username,))
+           key=cursor.fetchone()
+           C_key=key['symm_key']
+           encrypted_email=account['email'].encode()
            #file=open('symmetric.key','rb')
            #key=file.read()
            #file.close()
-           #f=Fernet(key)
+           f=Fernet(C_key)
            # Redirect to home page
-           #decrypted_email=f.decrypt(encrypted_email)
+           decrypted_email=f.decrypt(encrypted_email)
+           print(decrypted_email)
            session.pop('temp', None)
            return expiry(username)
            #perma = str(uuid.uuid4())
@@ -211,7 +214,7 @@ def expiry(U_name):
        print(date_sql)
        if date_sql == expiration[0:10] or int(e_yr)<int(yr):
            return redirect(url_for('update'))
-       if int(e_day)<int(day) and int(e_month)<int(month):
+       if int(e_day)<int(day) and int(e_month)<=int(month):
            return redirect(url_for('update'))
        else:
            return render_template('home2.html')
