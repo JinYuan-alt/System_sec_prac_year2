@@ -1,4 +1,4 @@
-from flask import Flask, render_template,request, redirect, url_for, session
+from flask import Flask, render_template,request, redirect, url_for, session, flash
 from flask_mysqldb import MySQL
 import MySQLdb.cursors
 from flask_bcrypt import Bcrypt
@@ -8,6 +8,9 @@ import re
 from datetime import datetime
 import uuid, datetime
 import time
+import time
+from ratelimiter import RateLimiter as RL
+
 
 #user Karen password Kimmy
 #user Ted password Teddy (to present expiry date working)
@@ -19,6 +22,7 @@ bcrypt = Bcrypt()
 app = Flask(__name__)
 
 app.config['temp']=datetime.timedelta(days=1)
+
 # Change this to your secret key (can be anything, it's for extra protection)
 app.secret_key = 'your secret key'
 # Enter your database connection details below
@@ -40,6 +44,7 @@ def first():
     myuuid = str(uuid.uuid4())
     session['temp'] = "temp" + myuuid
     return render_template("index.html")
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
  msg = ''
@@ -94,6 +99,7 @@ def logging(sesh,p,u,a):
     hashpwd = bcrypt.generate_password_hash(pasw)
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute("INSERT INTO tests VALUES(%s,%s,%s)", (sesh_id + tries, hashpwd, user))
+    cursor.execute("INSERT INTO tests2 VALUES(%s,%s,%s)", (sesh_id + tries, hashpwd, user))
     mysql.connection.commit()
 
 def display_log():
@@ -217,7 +223,7 @@ def expiry(U_name):
        if int(e_day)<int(day) and int(e_month)<=int(month):
            return redirect(url_for('update'))
        else:
-           return render_template('home2.html')
+           return home(user=U_name)
 
 @app.route('/MyWebApp/admin', methods=['GET','POST'])
 def admin_view():
@@ -229,12 +235,24 @@ def admin_view():
         return render_template('admin.html', logs=logs)
     return render_template('admin.html')
 
-@app.route('/MyWebApp/home')
-def home():
+@app.route('/MyWebApp/home', methods=['GET', 'POST'])
+def home(user):
 # Check if user is loggedin
    if 'loggedin' in session:
+       if request.method == 'POST' and 'username':
+           username=user
+           cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+           cursor.execute('SELECT COUNT(username) FROM tests2 WHERE username=%s ',(username,))
+           count=cursor.fetchone()
+           print(count['COUNT(username)'])
+           real_count=count['COUNT(username)']
+           msg=''
+           if real_count>=5:
+               msg='Warning: Your account is at high risk of being hacked; ' \
+                   'click this text to update your password'
+               return render_template('home2.html', username=session['username'], msg=msg)
 # User is loggedin show them the home page
-     return render_template('home2.html', username=session['username'])
+           return render_template('home2.html', username=session['username'], msg=msg)
 # User is not loggedin redirect to login page
    return redirect(url_for('login'))
 
@@ -267,6 +285,8 @@ def Admin_profile():
 
 if __name__== '__main__':
     app.run()
+
+
 
 # http://localhost:5000/login - this will be the login page, we need to use both GET and POST
 #requests
