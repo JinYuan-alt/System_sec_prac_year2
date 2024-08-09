@@ -12,7 +12,7 @@ import time
 from ratelimiter import RateLimiter as RL
 
 
-#user Karen password Kimmy
+#user Karen password Kimster/Kimmy
 #user Ted password Teddy (to present expiry date working)
 #Bobmyskrm password Bobby
 
@@ -41,8 +41,9 @@ failed_attempts=[]
 
 @app.route("/")
 def first():
-    myuuid = str(uuid.uuid4())
-    session['temp'] = "temp" + myuuid
+    if 'loggedin' not in session:
+       myuuid = str(uuid.uuid4())
+       session['temp'] = "temp" + myuuid
     return render_template("index.html")
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -84,7 +85,10 @@ def login():
            # Account doesn’t exist or username/password incorrect
            failed_attempts.append('failed')
            a = len(failed_attempts)
-           logging(session['temp'], password, username, a)
+           if 'temp' in session:
+             logging(session['temp'], password, username, a)
+           else:
+               logging(sesh=str(uuid.uuid4())+'false_alert', p=password, u=username, a=a)
            # Show the login form with message (if any)
      else:
          return render_template('register.html')
@@ -186,6 +190,7 @@ def update():
       if bcrypt.check_password_hash(ogP,password)==True:
           return redirect(url_for('update'))
       else: cursor.execute('UPDATE accounts SET username=%s, password=%s, password_register_date=%s, password_expiry_date=%s where username=%s', (username, hashpwd, E_sql, P_sql, username))
+      cursor.execute('DELETE FROM tests2 WHERE username=%s', (username,))
       mysql.connection.commit()
       return render_template('home2.html')
     return render_template('update.html',msg='will refresh if password is same as past one')
@@ -223,7 +228,8 @@ def expiry(U_name):
        if int(e_day)<int(day) and int(e_month)<=int(month):
            return redirect(url_for('update'))
        else:
-           return home(user=U_name)
+           return home()
+
 
 @app.route('/MyWebApp/admin', methods=['GET','POST'])
 def admin_view():
@@ -236,25 +242,25 @@ def admin_view():
     return render_template('admin.html')
 
 @app.route('/MyWebApp/home', methods=['GET', 'POST'])
-def home(user):
+def home():
 # Check if user is loggedin
    if 'loggedin' in session:
-       if request.method == 'POST' and 'username':
-           username=user
-           cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-           cursor.execute('SELECT COUNT(username) FROM tests2 WHERE username=%s ',(username,))
-           count=cursor.fetchone()
+       cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+       if request.method == 'POST' and 'username' in request.form and 'password' in request.form:
+           username=session['username']
+           cursor.execute('SELECT COUNT(username) FROM tests2 WHERE username=%s ', (username,))
+           count = cursor.fetchone()
            print(count['COUNT(username)'])
-           real_count=count['COUNT(username)']
-           msg=''
-           if real_count>=5:
-               msg='Warning: Your account is at high risk of being hacked; ' \
-                   'click this text to update your password'
-               return render_template('home2.html', username=session['username'], msg=msg)
+           real_count = count['COUNT(username)']
+           if real_count >= 5:
+              msg='your account is under risk of being hacked, update password now'
+              return render_template('home2.html', username=session['username'], msg=msg)
 # User is loggedin show them the home page
-           return render_template('home2.html', username=session['username'], msg=msg)
+       return render_template('home2.html', username=session['username'])
 # User is not loggedin redirect to login page
    return redirect(url_for('login'))
+
+
 
 @app.route('/MyWebApp/profile')
 def profile():
