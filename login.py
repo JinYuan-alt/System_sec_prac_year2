@@ -289,6 +289,9 @@ def Admin_profile():
    return redirect(url_for('login'))
 
 
+def post():
+    pass
+
 if __name__== '__main__':
     app.run()
 

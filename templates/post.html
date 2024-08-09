@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>t</title>
+<style>
+
+body,h1,h2,h3,h4,h5 {font-family: "Raleway", sans-serif}
+body{
+  color: rgb(159, 159, 251);
+}
+#Tag{
+  margin: auto;
+}
+#Home{
+  right: auto;
+  margin: 8%;
+}
+#Profile{
+  margin: 8%;
+}
+#Category{
+  margin: 8%;
+}
+#Logout{
+  margin: 8%;
+}
+</style>
+
+</head>
+<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+<body>
+    <div class="w3-content" style="max-width:1400px">
+
+        <div class="w3-top" style="outline-color: black;outline-style: double;">
+          <div class="w3-button w3-padding-16 w3-left w3-xlarge" style="color: white;"></div>
+          <div class="w3-padding-16" style="background-color:rgb(0, 0, 0); color: azure;">
+            <a href="blog.html" id="Home" class="w3-xlarge">Home</a>
+            <a href="account.html" id="Profile" class="fa fa-drivers-license, w3-xlarge">Profile</a>
+            <a href="#" id="post" class="w3-xlarge">Post</a>
+            <a href="#" id="Logout" class="w3-xlarge">Logout</a>
+            <a href="#" id="admin" class="w3-xlarge">Admin</a>
+          </div>
+        </div>
+    </div>
+
+<br><br><br><br><br><br><h3 style="color: black;text-align: center;" >Make A Post</h3><br><br><br><br>
+
+<div style="color: black;text-align: center;">
+<form><fieldset>
+  <label for="img">upload image</label>
+  <input type="file" id="img" name="img" accept="image/*">
+  <br>
+  <br>
+  <label for="txt">Input text here:</label>
+  <br>
+  <textarea style="height: 500px; width: 800px;" id="txt" name="txt"></textarea>
+  <br>
+  <input type="submit">
+</fieldset></form>
+</div>
+
+</body>
