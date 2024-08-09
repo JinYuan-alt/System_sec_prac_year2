@@ -38,7 +38,7 @@ and is wrapped around the whole page content, except for the footer in this exam
   <div class="w3-top" style="outline-color: black;outline-style: double;">
     <div class="w3-button w3-padding-16 w3-left w3-xlarge" style="color: white;"></div>
     <div class="w3-padding-16" style="background-color:rgb(0, 0, 0); color: azure;">
-      <a href="home2.html" id="Home" class="w3-xlarge">Home</a>
+      <a href="{{url_for('home')}}" id="Home" class="w3-xlarge">Home</a>
       <a href="#" id="Profile" class="fa fa-drivers-license, w3-xlarge">Profile</a>
       <a href="post.html" id="post" class="w3-xlarge">Post</a>
       <a href="{{ url_for('logout') }}" id="Logout" class="w3-xlarge">Logout</a>
