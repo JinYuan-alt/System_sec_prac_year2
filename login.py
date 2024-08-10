@@ -15,7 +15,7 @@ from ratelimiter import RateLimiter as RL
 #user Karen password Kimster/Kimmy
 #user Ted password Teddy (to present expiry date working)
 #Bobmyskrm password Bobby
-
+#Bivol password Soviet
 
 bcrypt = Bcrypt()
 
@@ -154,6 +154,11 @@ def register():
         R_sql=yr+"-"+month+"-"+day
         #write some sql code to store this into database under user's username
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute('SELECT * FROM accounts WHERE username=%s',(username,))
+        check=cursor.fetchone()
+        if check != None:
+            msg='choose another username'
+            return render_template('register.html',msg=msg)
         cursor.execute('INSERT INTO accounts VALUES (NULL, %s, %s, %s, %s, %s, %s)', (username, hashpwd, encrypted_email, R_sql ,P_sql, key))
         mysql.connection.commit()
         msg = 'You have successfully registered!'
