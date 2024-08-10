@@ -102,8 +102,8 @@ def logging(sesh,p,u,a):
     pasw = str(p)
     hashpwd = bcrypt.generate_password_hash(pasw)
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    cursor.execute("INSERT INTO tests VALUES(%s,%s,%s)", (sesh_id + tries, hashpwd, user))
-    cursor.execute("INSERT INTO tests2 VALUES(%s,%s,%s)", (sesh_id + tries, hashpwd, user))
+    cursor.execute("INSERT INTO tests VALUES(%s,%s,%s,NULL)", (sesh_id + tries, hashpwd, user))
+    cursor.execute("INSERT INTO tests2 VALUES(%s,%s,%s,NULL)", (sesh_id + tries, hashpwd, user))
     mysql.connection.commit()
 
 def display_log():
