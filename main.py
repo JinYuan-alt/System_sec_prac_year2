@@ -3,11 +3,16 @@ import os
 from PIL.ExifTags import TAGS
 from iptcinfo3 import IPTCInfo
 import login
+from io import BytesIO
+
 def check():
     file_path= 'static/sanitized/WIN_20240811_21_14_29_Pro.jpg'
     image=Image.open(file_path)
     exifdata = image.getexif()
     info=IPTCInfo(file_path)
+    xmpdata = image.getxmp()
+    print(xmpdata)
+    print(info)
     # looping through all the tags present in exifdata
     for tagid in exifdata:
         # getting the tag name instead of tag id
@@ -19,7 +24,7 @@ def check():
         # printing the final result
         print(f"{tagname:25}: {value}")
     if info != None:
-        print(info)
+        pass
     else: print("nothing found")
 
 def presanitize():
