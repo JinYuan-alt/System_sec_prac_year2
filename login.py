@@ -46,6 +46,7 @@ mysql = MySQL(app)
 failed_attempts=[]
 NonSan_filepath=[]
 San_filepath=[]
+Post_text=[]
 
 @app.route("/")
 def first():
@@ -283,8 +284,14 @@ def profile():
       cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
       cursor.execute('SELECT * FROM accounts WHERE id = %s', (session['id'],))
       account = cursor.fetchone()
+      try:
+          The_path=San_filepath[-1]
+          txt = Post_text[-1]
+      except IndexError:
+          The_path=''
+          txt = ''
 # Show the profile page with account info
-      return render_template('account.html', account=account)
+      return render_template('account.html', account=account, filename=The_path, txt=txt)
 # User is not loggedin redirect to login page
    return redirect(url_for('login'))
 
@@ -305,18 +312,21 @@ def Admin_profile():
 def image():
     msg=''
     if request.method == "POST" and 'img' in request.files:
-        image=request.files['img']
-        txt=request.form['txt']
-        #print(str(image.filename))
-        image.save(os.path.join(app.config['uploads'], image.filename))
-        img = Image.open('uploads/'+image.filename)
-        icc_profile = img.info.get('icc_profile')
-        NonSan_filepath.append('uploads/'+image.filename)
-        output_path = os.path.join(app.config['sanitized'], image.filename)
-        img.save(output_path, icc_profile=icc_profile)
-        msg='/sanitized/'+image.filename
-        San_filepath.append(msg)
-       #print(txt)
+        try:
+          image=request.files['img']
+          txt=request.form['txt']
+          #print(str(image.filename))
+          image.save(os.path.join(app.config['uploads'], image.filename))
+          img = Image.open('uploads/'+image.filename)
+          icc_profile = img.info.get('icc_profile')
+          NonSan_filepath.append('uploads/'+image.filename)
+          output_path = os.path.join(app.config['sanitized'], image.filename)
+          img.save(output_path, icc_profile=icc_profile)
+          msg='/sanitized/'+image.filename
+          San_filepath.append(msg)
+          Post_text.append(txt)
+        except FileNotFoundError:
+            return render_template('post.html')
         return render_template('post.html', filename=msg)
     return render_template('post.html')
 
