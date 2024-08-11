@@ -4,7 +4,7 @@ from PIL.ExifTags import TAGS
 from iptcinfo3 import IPTCInfo
 import login
 def check():
-    file_path= ''
+    file_path= 'static/sanitized/WIN_20240811_21_14_29_Pro.jpg'
     image=Image.open(file_path)
     exifdata = image.getexif()
     info=IPTCInfo(file_path)
@@ -23,7 +23,7 @@ def check():
     else: print("nothing found")
 
 def presanitize():
-    file_path = ''
+    file_path = 'uploads/WIN_20240811_21_14_29_Pro.jpg'
     image = Image.open(file_path)
     exifdata = image.getexif()
     info = IPTCInfo(file_path)
