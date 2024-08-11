@@ -1,15 +1,19 @@
+import cryptography
+import re
+from datetime import datetime
+import time
+from ratelimiter import RateLimiter as RL
 from flask import Flask, render_template,request, redirect, url_for, session, flash
 from flask_mysqldb import MySQL
 import MySQLdb.cursors
 from flask_bcrypt import Bcrypt
-import cryptography
 from cryptography.fernet import Fernet
-import re
-from datetime import datetime
 import uuid, datetime
 import time
-import time
-from ratelimiter import RateLimiter as RL
+from PIL import Image
+import os
+from PIL.ExifTags import TAGS
+from iptcinfo3 import IPTCInfo
 
 
 #user Karen password Kimster/Kimmy
@@ -19,10 +23,12 @@ from ratelimiter import RateLimiter as RL
 
 bcrypt = Bcrypt()
 
+basedir = os.path.abspath(os.path.dirname(__file__))
 app = Flask(__name__)
 
 app.config['temp']=datetime.timedelta(days=1)
-
+app.config['uploads'] = os.path.join(basedir, 'uploads')
+app.config['sanitized']= os.path.join(basedir, 'static/sanitized')
 # Change this to your secret key (can be anything, it's for extra protection)
 app.secret_key = 'your secret key'
 # Enter your database connection details below
@@ -38,6 +44,8 @@ app.config['MYSQL_PORT'] = 3306
 # Intialize MySQL
 mysql = MySQL(app)
 failed_attempts=[]
+NonSan_filepath=[]
+San_filepath=[]
 
 @app.route("/")
 def first():
@@ -293,9 +301,63 @@ def Admin_profile():
 # User is not loggedin redirect to login page
    return redirect(url_for('login'))
 
+@app.route('/MyWebApp/post', methods=['GET','POST'])
+def image():
+    msg=''
+    if request.method == "POST" and 'img' in request.files:
+        image=request.files['img']
+        txt=request.form['txt']
+        #print(str(image.filename))
+        image.save(os.path.join(app.config['uploads'], image.filename))
+        img = Image.open('uploads/'+image.filename)
+        icc_profile = img.info.get('icc_profile')
+        NonSan_filepath.append('uploads/'+image.filename)
+        output_path = os.path.join(app.config['sanitized'], image.filename)
+        img.save(output_path, icc_profile=icc_profile)
+        msg='/sanitized/'+image.filename
+        San_filepath.append(msg)
+       #print(txt)
+        return render_template('post.html', filename=msg)
+    return render_template('post.html')
 
-def post():
-    pass
+def check():
+    file_path= NonSan_filepath[-1]
+    image=Image.open(file_path)
+    exifdata = image.getexif()
+    info=IPTCInfo(file_path)
+    # looping through all the tags present in exifdata
+    for tagid in exifdata:
+        # getting the tag name instead of tag id
+        tagname = TAGS.get(tagid, tagid)
+
+        # passing the tagid to get its respective value
+        value = exifdata.get(tagid)
+
+        # printing the final result
+        print(f"{tagname:25}: {value}")
+    if info != None:
+        print(info)
+    else: print("nothing found")
+
+def presanitize():
+    file_path = NonSan_filepath[-1]
+    image = Image.open(file_path)
+    exifdata = image.getexif()
+    info = IPTCInfo(file_path)
+    xmpdata=image.getxmp()
+    # looping through all the tags present in exifdata
+    print(xmpdata)
+    print(info)
+    for tagid in exifdata:
+        # getting the tag name instead of tag id
+        tagname = TAGS.get(tagid, tagid)
+
+        # passing the tagid to get its respective value
+        value = exifdata.get(tagid)
+
+        # printing the final result
+        print(f"{tagname:25}: {value}")
+
 
 if __name__== '__main__':
     app.run()
