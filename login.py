@@ -55,7 +55,7 @@ Post_text=[]
 
 class LoginForm(FlaskForm):
     username = StringField('username', validators=[InputRequired('A username is required!'),
-    Length(min=1, max=10, message='Must be between 5 and 10 characters.')])
+    Length(min=1, max=30, message='Must be between 5 and 10 characters.')])
     password = PasswordField('password', validators=[InputRequired('Password is required!')])
     recaptcha = RecaptchaField()
 
