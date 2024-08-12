@@ -26,7 +26,7 @@ import json
 #Bobmyskrm password Bobby
 #Bivol password Soviet
 #MoguM1 password MoguM1 email: MoguM1@gmail.com
-
+#bah password Bahn10
 
 
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -482,28 +482,38 @@ def update():
       username= request.form['username']
       password = request.form['password']
       hashpwd = bcrypt.generate_password_hash(password)
-      CT = time.localtime()
-      yr = str(CT.tm_year)
-      day = str(CT.tm_mday)
-      month = str(CT.tm_mon)
-      time_list = [yr, int(month)+1, day]
-      E_sql=yr+"-"+month+"-"+day
-      if int(month) >= 12:
+      checkpolicy = policy.test(password)
+      stats = PasswordStats(password)
+      if checkpolicy:
+          # Create a detailed error message
+          flash("Password does not meet the following criteria: " + ", ".join([str(rule) for rule in checkpolicy]))
+          return render_template('update.html', msg='Password does not meet the required criteria.')
+      if stats.strength() < 0.10:
+          flash("Password not strong enough. It must have an entropy strength of at least 0.10.")
+          return render_template('update.html', msg='Password does not meet the required criteria.')
+      else:
+        CT = time.localtime()
+        yr = str(CT.tm_year)
+        day = str(CT.tm_mday)
+        month = str(CT.tm_mon)
+        time_list = [yr, int(month)+1, day]
+        E_sql=yr+"-"+month+"-"+day
+        if int(month) >= 12:
           time_list[0] = int(yr) + 1
           time_list[1] = 1
-      P_yr = str(time_list[0])
-      P_month = str(time_list[1])
-      P_day = str(time_list[2])
-      P_sql = P_yr + "-" + P_month + "-" + P_day
-      cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-      cursor.execute('SELECT * FROM accounts WHERE username=%s',(username,))
-      check = cursor.fetchone()
-      ogP=check['password']
-      if bcrypt.check_password_hash(ogP,password)==True:
+        P_yr = str(time_list[0])
+        P_month = str(time_list[1])
+        P_day = str(time_list[2])
+        P_sql = P_yr + "-" + P_month + "-" + P_day
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute('SELECT * FROM accounts WHERE username=%s',(username,))
+        check = cursor.fetchone()
+        ogP=check['password']
+        if bcrypt.check_password_hash(ogP,password)==True:
           return redirect(url_for('update'))
-      else: cursor.execute('UPDATE accounts SET username=%s, password=%s, password_register_date=%s, password_expiry_date=%s where username=%s', (username, hashpwd, E_sql, P_sql, username))
-      cursor.execute('DELETE FROM tests2 WHERE username=%s', (username,))
-      mysql.connection.commit()
+        else: cursor.execute('UPDATE accounts SET username=%s, password=%s, password_register_date=%s, password_expiry_date=%s where username=%s', (username, hashpwd, E_sql, P_sql, username))
+        cursor.execute('DELETE FROM tests2 WHERE username=%s', (username,))
+        mysql.connection.commit()
       return render_template('home2.html')
     return render_template('update.html',msg='will refresh if password is same as past one')
 
