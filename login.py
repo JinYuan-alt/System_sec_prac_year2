@@ -115,12 +115,13 @@ def first():
     if 'loggedin' not in session:
        myuuid = str(uuid.uuid4())
        session['temp'] = "temp" + myuuid
+       clear_session()
     return render_template("index.html",msg='',form=formL)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     msg = ''
-
+    formL=LoginForm()
         # Google OAuth
     if google.authorized:
         try:
@@ -132,10 +133,10 @@ def login():
             username = google_info.get("name", "Google User")
         except AssertionError:
             msg = 'Failed to retrieve user information from Google. Please try again.'
-            return render_template('index.html', msg=msg)
+            return render_template('index.html', msg=msg, form=formL)
         except Exception as e:
             msg = f'An unexpected error occurred: {str(e)}'
-            return render_template('index.html', msg=msg)
+            return render_template('index.html', msg=msg, form=formL)
 
         # Check if the user already exists in the `google` table
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
@@ -159,9 +160,8 @@ def login():
 
         if account is None:
             msg = 'Incorrect username/password!'
-            return render_template('index.html', msg=msg)
-    formL = LoginForm()
- # Check if "username" and "password" POST requests exist (user submitted form)
+            return render_template('index.html', msg=msg, form=formL)
+    # Check if "username" and "password" POST requests exist (user submitted form)
     if request.method == 'POST' and 'username' in request.form and 'password' in request.form and 'g-recaptcha-response' in request.form:
      # Create variables for easy access
       if request.form['g-recaptcha-response'] == '':
@@ -230,7 +230,7 @@ def login():
 
 @app.route('/google_login')
 def google_login():
-    formL=LoginForm(FlaskForm)
+    formL=LoginForm()
     if not google.authorized:
         return redirect(url_for('google.login'))
     resp = google.get("/oauth2/v2/userinfo")
@@ -239,7 +239,6 @@ def google_login():
     email = google_info["email"]
     name = google_info.get("name", "No Name")
     picture = google_info.get("picture", None)
-
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute('SELECT * FROM google WHERE google_id = %s', (google_id,))
     google_account = cursor.fetchone()
@@ -407,8 +406,8 @@ def register():
         mysql.connection.commit()
 
         # Insert related data into `accounts` table
-        cursor.execute('INSERT INTO accounts1 (username, email, role_id) VALUES (%s, %s, %s)',
-                       (username, email, 1))
+        cursor.execute('INSERT INTO accounts1 (username, email, password) VALUES (%s, %s, NULL) ',
+                       (username, email))
         mysql.connection.commit()
 
         session['loggedin'] = True
