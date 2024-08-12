@@ -230,6 +230,7 @@ def login():
 
 @app.route('/google_login')
 def google_login():
+    formL=LoginForm(FlaskForm)
     if not google.authorized:
         return redirect(url_for('google.login'))
     resp = google.get("/oauth2/v2/userinfo")
@@ -250,7 +251,7 @@ def google_login():
         return redirect(url_for('home'))
     else:
         msg = 'Google account not registered. Please sign up using Google.'
-        return render_template('index.html', msg=msg)
+        return render_template('index.html', msg=msg, form=formL)
 @app.route('/secure_login', methods=['GET', 'POST'])
 def secure_login():
     msg = ''
@@ -692,11 +693,6 @@ def callback():
     session['google_token'] = (token['access_token'], '')
     return redirect(url_for('home'))
 
-
-@app.route('/clear-session')
-def clear_session():
-    session.clear()
-    return 'Session cleared!'
 
 
 

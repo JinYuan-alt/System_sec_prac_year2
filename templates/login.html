@@ -5,6 +5,7 @@
   <body>
     <h1>Login Form</h1>
     <form method="POST" action="{{ url_for('login') }}">
+      <a href="{{ url_for('google.login') }}">Login with Google</a>
       <div style="color:red">{{ msg }}</div>
       {{ form.csrf_token }}
       <div class="input-container">
@@ -26,7 +27,6 @@
       {{ form.recaptcha }}
       {% for error in form.recaptcha.errors %}
         <ul>
-      <a href="{{ url_for('google.login') }}">Login with Google</a>
           <li style="color:red;">{{ error }}</li>
         </ul>
       {% endfor %}
