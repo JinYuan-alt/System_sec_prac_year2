@@ -16,6 +16,8 @@ from password_strength import PasswordStats
 from PIL.ExifTags import TAGS
 from iptcinfo3 import IPTCInfo
 from datetime import datetime, timedelta
+from flask_dance.contrib.google import make_google_blueprint, google
+import json
 
 
 
@@ -30,19 +32,16 @@ from datetime import datetime, timedelta
 basedir = os.path.abspath(os.path.dirname(__file__))
 app = Flask(__name__)
 
-bcrypt = Bcrypt(app)
+
 
 app.config['temp']=timedelta(days=1)
 app.config['uploads'] = os.path.join(basedir, 'uploads')
 app.config['sanitized']= os.path.join(basedir, 'static/sanitized')
-# Change this to your secret key (can be anything, it's for extra protection)
 app.secret_key = 'skip'
 app.config['RECAPTCHA_PUBLIC_KEY'] = '6LdjNgUqAAAAACaa3mZx9EOk2mx4ooaUmabkPhAb'
 app.config['RECAPTCHA_PRIVATE_KEY'] = '6LdjNgUqAAAAALNKNo64J122u0Yj0Bn96Z1ZZPeP'
-# Enter your database connection details below
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
-# Password below must be changed to match root password specified at server installation
 app.config['MYSQL_PASSWORD'] = 'ihatenyp1234'
 app.config['MYSQL_DB'] = 'pythonlogin2'
 time_list=[]
@@ -50,8 +49,16 @@ time_list=[]
 #Please make necessary change to the above MYSQL_PORT config
 app.config['MYSQL_PORT'] = 3306
 # Intialize MySQL
+blueprint = make_google_blueprint(
+    client_id="15998136336-hgnkta6j00istjbbrdl36hgefuep6t9u.apps.googleusercontent.com",
+    client_secret="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",
+    scope=["openid", "https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/userinfo.profile"],
+    redirect_to="google_login"
+)
+app.register_blueprint(blueprint, url_prefix="/login")
+
 mysql = MySQL(app)
-bcrypt = Bcrypt()
+bcrypt = Bcrypt(app)
 csrf = CSRFProtect()
 recaptcha = RecaptchaField()
 failed_attempts=[]
@@ -73,6 +80,35 @@ class LoginForm(FlaskForm):
     password = PasswordField('password', validators=[InputRequired('Password is required!')])
     recaptcha = RecaptchaField()
 
+class MySQLStorage:
+    def __init__(self, connection, user_id):
+        self.connection = connection
+        self.user_id = user_id
+
+    def get(self, google_id):
+        cursor = self.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute('SELECT * FROM oauth_tokens WHERE google_id = %s AND user_id = %s', (google_id, self.user_id))
+        token = cursor.fetchone()
+        if token:
+            return {
+                "access_token": token['access_token'],
+                "refresh_token": token['refresh_token'],
+                "token_type": token['token_type'],
+                "expires_in": token['expires_in']
+            }
+        return None
+
+    def set(self, google_id, token):
+        cursor = self.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute('INSERT INTO oauth_tokens (google_id, access_token, refresh_token, token_type, expires_in, user_id) VALUES (%s, %s, %s, %s, %s, %s) ON DUPLICATE KEY UPDATE access_token = %s, refresh_token = %s, token_type = %s, expires_in = %s',
+                       (google_id, token['access_token'], token.get('refresh_token'), token.get('token_type'), token.get('expires_in'), self.user_id,
+                        token['access_token'], token.get('refresh_token'), token.get('token_type'), token.get('expires_in')))
+        self.connection.commit()
+
+    def delete(self, google_id):
+        cursor = self.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute('DELETE FROM oauth_tokens WHERE google_id = %s AND user_id = %s', (google_id, self.user_id))
+        self.connection.commit()
 @app.route("/")
 def first():
     formL=LoginForm()
@@ -127,8 +163,7 @@ def login():
                    block_until = last_attempt + timedelta(minutes=5)
                    print(block_until)
                    if datetime.now() < block_until:
-                       msg = 'Too many failed attempts. Try again later.'
-                       return render_template('login.html', msg=msg, form=formL)
+                       return render_template('login.html', msg='Too many failed attempts. Try again later.', form=formL)
                    else:
                        # Reset the failed attempts after the block period
                        cursor.execute('UPDATE login_attempts SET attempts = 0 WHERE username = %s', (username,))

@@ -5,6 +5,7 @@
   <body>
     <h1>Login Form</h1>
     <form method="POST" action="{{ url_for('login') }}">
+      <div style="color:red">{{ msg }}</div>
       {{ form.csrf_token }}
       <div class="input-container">
         {{ form.username.label }}
@@ -26,7 +27,6 @@
       {% for error in form.recaptcha.errors %}
         <ul>
           <li style="color:red;">{{ error }}</li>
-          <li style="color:red">{{ msg }}</li>
         </ul>
       {% endfor %}
       <input type="submit" value="Submit" style="margin-top: 40px;">
