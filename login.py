@@ -22,10 +22,12 @@ from iptcinfo3 import IPTCInfo
 #Bobmyskrm password Bobby
 #Bivol password Soviet
 
-bcrypt = Bcrypt()
+
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 app = Flask(__name__)
+
+bcrypt = Bcrypt(app)
 
 app.config['temp']=datetime.timedelta(days=1)
 app.config['uploads'] = os.path.join(basedir, 'uploads')
@@ -57,7 +59,7 @@ Post_text=[]
 
 class LoginForm(FlaskForm):
     username = StringField('username', validators=[InputRequired('A username is required!'),
-    Length(min=1, max=30, message='Must be between 5 and 10 characters.')])
+    Length(min=1, max=30, message='Must be between 5 and 30 characters.')])
     password = PasswordField('password', validators=[InputRequired('Password is required!')])
     recaptcha = RecaptchaField()
 
@@ -84,7 +86,10 @@ def login():
      username = request.form['username']
      password = request.form['password']
      if username == 'admin123' and password == 'admin123':
+         session['username']= 'admin123'
+         session['password']= 'admin123'
          session['loggedin'] = True
+         session['id']= '10101010'
          return render_template('admin.html')
      # Check if account exists using MySQL
      cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
@@ -126,6 +131,44 @@ def login():
          return render_template('register.html')
  return render_template('index.html',msg='',form=formL)
 
+@app.route('/secure_login', methods=['GET', 'POST'])
+def secure_login():
+    msg = ''
+    if request.method == 'POST' and 'username' in request.form and 'password' in request.form:
+        username = request.form['username']
+        password = request.form['password']
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute('SELECT * FROM accounts WHERE username = %s', (username,))
+        account = cursor.fetchone()
+        if account and bcrypt.check_password_hash(account['password'], password):
+            session['loggedin'] = True
+            session['id'] = account['id']
+            session['username'] = account['username']
+            return 'Secure login successful!'
+        else:
+            msg = 'Incorrect username/password!'
+    return render_template('secure_login.html', msg=msg)
+@app.route('/vulnerable_login', methods=['GET', 'POST'])
+def vulnerable_login():
+    msg = ''
+    data = []
+    if request.method == 'POST' and 'username' in request.form and 'password' in request.form:
+        username = request.form['username']
+        password = request.form['password']
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+        # This query is vulnerable to SQL injection
+        query = f"SELECT * FROM accounts WHERE username = '{username}' AND password = '{password}'"
+        cursor.execute(query)
+        accounts = cursor.fetchall()
+
+        if accounts:
+            # Display all returned account details
+            msg = 'Vulnerable login successful! Retrieved data:'
+            data = accounts  # Capture the retrieved data
+        else:
+            msg = 'Incorrect username/password!'
+    return render_template('vulnerable_login.html', msg=msg, data=data)
 
 def logging(sesh,p,u,a):
     tries = "." + str(a)
@@ -326,6 +369,9 @@ def profile():
 def Admin_profile():
 # Check if user is loggedin
    if 'loggedin' in session:
+      if session['username']=='admin123':
+           account='administrator'
+           return render_template('Adminprofile.html', account=account)
 # We need all the account info for the user so we can display it on the profile page
       cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
       cursor.execute('SELECT * FROM accounts WHERE id = %s', (session['id'],))
