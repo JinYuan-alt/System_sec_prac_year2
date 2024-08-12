@@ -26,10 +26,12 @@
       {{ form.recaptcha }}
       {% for error in form.recaptcha.errors %}
         <ul>
+      <a href="{{ url_for('google.login') }}">Login with Google</a>
           <li style="color:red;">{{ error }}</li>
         </ul>
       {% endfor %}
       <input type="submit" value="Submit" style="margin-top: 40px;">
     </form>
+
   </body>
 </html>

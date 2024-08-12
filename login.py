@@ -228,6 +228,29 @@ def login():
          return render_template('register.html')
     return render_template('index.html',msg='',form=formL)
 
+@app.route('/google_login')
+def google_login():
+    if not google.authorized:
+        return redirect(url_for('google.login'))
+    resp = google.get("/oauth2/v2/userinfo")
+    google_info = resp.json()
+    google_id = google_info["id"]
+    email = google_info["email"]
+    name = google_info.get("name", "No Name")
+    picture = google_info.get("picture", None)
+
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute('SELECT * FROM google WHERE google_id = %s', (google_id,))
+    google_account = cursor.fetchone()
+
+    if google_account:
+        session['loggedin'] = True
+        session['id'] = google_account['id']
+        session['username'] = google_account['username']
+        return redirect(url_for('home'))
+    else:
+        msg = 'Google account not registered. Please sign up using Google.'
+        return render_template('index.html', msg=msg)
 @app.route('/secure_login', methods=['GET', 'POST'])
 def secure_login():
     msg = ''
@@ -662,11 +685,23 @@ def presanitize():
       return render_template('pre_sanIMG.html', presan=ls)
     return render_template('pre_sanIMG.html')
 
+@app.route("/login/callback")
+def callback():
+    google.authorized_response()
+    token = google.token
+    session['google_token'] = (token['access_token'], '')
+    return redirect(url_for('home'))
+
+
+@app.route('/clear-session')
+def clear_session():
+    session.clear()
+    return 'Session cleared!'
 
 
 
 if __name__== '__main__':
-    app.run(debug=True)
+    app.run(debug=True, ssl_context='adhoc')
 
 
 
