@@ -1,0 +1,22 @@
+{% extends "basetest.html" %}
+
+{% block title %}Vulnerable Login{% endblock %}
+
+{% block content %}
+<h2>table</h2>
+<body>
+<form action="/check_sanIMG" method="post">
+    <label for="check">Push to view metadata after sanitization</label>
+    <input id="check" type="submit" name="check" value="checking">
+</form>
+<br>
+<br>
+<table border="1">
+{% for d in check %}
+    <tr>
+        <td>{{ d }}</td>
+    </tr>
+{% endfor %}
+</table>
+{% endblock %}
+</body>

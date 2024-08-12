@@ -1,0 +1,22 @@
+{% extends "basetest.html" %}
+
+{% block title %}Vulnerable Login{% endblock %}
+
+{% block content %}
+<h2>table</h2>
+<body>
+<form action="/presan" method="post">
+    <label for="presan">Push to view metadata before sanitization</label>
+    <input id="presan" type="submit" name="presan" value="presan">
+</form>
+<br>
+<br>
+<table border="1">
+{% for d in presan %}
+    <tr>
+        <td>{{ d }}</td>
+    </tr>
+{% endfor %}
+</table>
+{% endblock %}
+</body>

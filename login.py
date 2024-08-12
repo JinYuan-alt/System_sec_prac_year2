@@ -75,11 +75,8 @@ def first():
 def login():
  msg = ''
  formL = LoginForm()
- print(LoginForm.errors)
  # Check if "username" and "password" POST requests exist (user submitted form)
- print("Outside")
  if request.method == 'POST' and 'username' in request.form and 'password' in request.form and 'g-recaptcha-response' in request.form:
-     print("Inside")
      # Create variables for easy access
      if request.form['g-recaptcha-response'] == '':
          return render_template('index.html', form=formL)
@@ -402,6 +399,62 @@ def image():
             return render_template('post.html')
         return render_template('post.html', filename=msg)
     return render_template('post.html')
+
+@app.route('/check_sanIMG', methods=['GET','POST'])
+def check():
+    if request.method == 'POST':
+      file_path= 'static/sanitized/WIN_20240811_21_14_29_Pro.jpg'
+      image=Image.open(file_path)
+      exifdata = image.getexif()
+      info=IPTCInfo(file_path)
+      xmpdata = image.getxmp()
+      print(xmpdata)
+      print(info)
+      ls = []
+    # looping through all the tags present in exifdata
+      for tagid in exifdata:
+        # getting the tag name instead of tag id
+        tagname = TAGS.get(tagid, tagid)
+
+        # passing the tagid to get its respective value
+        value = exifdata.get(tagid)
+
+        # printing the final result
+        print(f"{tagname:25}: {value}")
+        ls.append(f"{tagname:25}: {value}")
+      ls.append(xmpdata)
+      ls.append(info)
+      return render_template('check_sanIMG.html', check=ls)
+    return render_template('check_sanIMG.html')
+
+@app.route('/pre_sanIMG', methods=['GET','POST'])
+def presanitize():
+    if request.method == 'POST':
+      file_path = 'uploads/WIN_20240811_21_14_29_Pro.jpg'
+      image = Image.open(file_path)
+      exifdata = image.getexif()
+      info = IPTCInfo(file_path)
+      xmpdata=image.getxmp()
+    # looping through all the tags present in exifdata
+      print(xmpdata)
+      print(info)
+      ls = []
+      for tagid in exifdata:
+        # getting the tag name instead of tag id
+        tagname = TAGS.get(tagid, tagid)
+
+        # passing the tagid to get its respective value
+        value = exifdata.get(tagid)
+
+        # printing the final result
+        print(f"{tagname:25}: {value}")
+        ls.append(f"{tagname:25}: {value}")
+      ls.append(xmpdata)
+      ls.append(info)
+      return render_template('check_sanIMG.html', presan=ls)
+    return render_template('check_sanIMG.html')
+
+
 
 
 if __name__== '__main__':
