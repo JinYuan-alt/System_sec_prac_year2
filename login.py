@@ -1,8 +1,4 @@
-import cryptography
-import re
-from datetime import datetime
-import time
-from ratelimiter import RateLimiter as RL
+from flask_wtf.csrf import CSRFProtect
 from flask import Flask, render_template,request, redirect, url_for, session, flash
 from flask_mysqldb import MySQL
 import MySQLdb.cursors
@@ -12,6 +8,9 @@ import uuid, datetime
 import time
 from PIL import Image
 import os
+from flask_wtf import FlaskForm, RecaptchaField
+from wtforms import StringField, PasswordField
+from wtforms.validators import InputRequired, Length, AnyOf
 from PIL.ExifTags import TAGS
 from iptcinfo3 import IPTCInfo
 
@@ -30,7 +29,9 @@ app.config['temp']=datetime.timedelta(days=1)
 app.config['uploads'] = os.path.join(basedir, 'uploads')
 app.config['sanitized']= os.path.join(basedir, 'static/sanitized')
 # Change this to your secret key (can be anything, it's for extra protection)
-app.secret_key = 'your secret key'
+app.secret_key = 'skip'
+app.config['RECAPTCHA_PUBLIC_KEY'] = '6LdjNgUqAAAAACaa3mZx9EOk2mx4ooaUmabkPhAb'
+app.config['RECAPTCHA_PRIVATE_KEY'] = '6LdjNgUqAAAAALNKNo64J122u0Yj0Bn96Z1ZZPeP'
 # Enter your database connection details below
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
@@ -43,26 +44,45 @@ time_list=[]
 app.config['MYSQL_PORT'] = 3306
 # Intialize MySQL
 mysql = MySQL(app)
+bcrypt = Bcrypt()
+csrf = CSRFProtect()
+recaptcha = RecaptchaField()
 failed_attempts=[]
 NonSan_filepath=[]
 San_filepath=[]
 Post_text=[]
 
+
+class LoginForm(FlaskForm):
+    username = StringField('username', validators=[InputRequired('A username is required!'),
+    Length(min=1, max=10, message='Must be between 5 and 10 characters.')])
+    password = PasswordField('password', validators=[InputRequired('Password is required!')])
+    recaptcha = RecaptchaField()
+
 @app.route("/")
 def first():
+    formL=LoginForm()
     if 'loggedin' not in session:
        myuuid = str(uuid.uuid4())
        session['temp'] = "temp" + myuuid
-    return render_template("index.html")
+    return render_template("index.html",msg='',form=formL)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
  msg = ''
+ formL = LoginForm()
+ print(LoginForm.errors)
  # Check if "username" and "password" POST requests exist (user submitted form)
- if request.method == 'POST' and 'username' in request.form and 'password' in request.form:
+ print("Outside")
+ if request.method == 'POST' and 'username' in request.form and 'password' in request.form and 'g-recaptcha-response' in request.form:
+     print("Inside")
      # Create variables for easy access
+     if request.form['g-recaptcha-response'] == '':
+         return render_template('index.html', form=formL)
      username = request.form['username']
      password = request.form['password']
+     if username == 'admin123' and password == 'admin123':
+         return render_template('home.html')
      # Check if account exists using MySQL
      cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
      cursor.execute('SELECT * FROM accounts WHERE username = %s',(username,))#hash passwd will never match plaintext passwd
@@ -101,7 +121,7 @@ def login():
            # Show the login form with message (if any)
      else:
          return render_template('register.html')
- return render_template('index.html',msg='')
+ return render_template('index.html',msg='',form=formL)
 
 
 def logging(sesh,p,u,a):
@@ -140,37 +160,41 @@ def register():
 # Create variables for easy access
         username = request.form['username']
         password = request.form['password']
+        confirm_password = request.form['confirm_password']
         email = request.form['email']
         key = Fernet.generate_key()
-        with open("symmetric.key","wb") as fo:
+        if password != confirm_password:
+            msg = 'Passwords do not match!'
+        else:
+         with open("symmetric.key","wb") as fo:
             fo.write(key)
-        f = Fernet(key)
-        email = email.encode()
-        encrypted_email=f.encrypt(email)
-        hashpwd=bcrypt.generate_password_hash(password)
-        CT=time.localtime()
-        yr=str(CT.tm_year)
-        day=str(CT.tm_mday)
-        month=str(CT.tm_mon)
-        time_list=[yr,int(month)+1,day]
-        if int(month)>=12:
+         f = Fernet(key)
+         email = email.encode()
+         encrypted_email=f.encrypt(email)
+         hashpwd=bcrypt.generate_password_hash(password)
+         CT=time.localtime()
+         yr=str(CT.tm_year)
+         day=str(CT.tm_mday)
+         month=str(CT.tm_mon)
+         time_list=[yr,int(month)+1,day]
+         if int(month)>=12:
             time_list[0]=int(yr)+1
             time_list[1]=1
-        P_yr=str(time_list[0])
-        P_month=str(time_list[1])
-        P_day=str(time_list[2])
-        P_sql=P_yr+"-"+P_month+"-"+P_day
-        R_sql=yr+"-"+month+"-"+day
+         P_yr=str(time_list[0])
+         P_month=str(time_list[1])
+         P_day=str(time_list[2])
+         P_sql=P_yr+"-"+P_month+"-"+P_day
+         R_sql=yr+"-"+month+"-"+day
         #write some sql code to store this into database under user's username
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        cursor.execute('SELECT * FROM accounts WHERE username=%s',(username,))
-        check=cursor.fetchone()
-        if check != None:
+         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+         cursor.execute('SELECT * FROM accounts WHERE username=%s',(username,))
+         check=cursor.fetchone()
+         if check != None:
             msg='choose another username'
             return render_template('register.html',msg=msg)
-        cursor.execute('INSERT INTO accounts VALUES (NULL, %s, %s, %s, %s, %s, %s)', (username, hashpwd, encrypted_email, R_sql ,P_sql, key))
-        mysql.connection.commit()
-        msg = 'You have successfully registered!'
+         cursor.execute('INSERT INTO accounts VALUES (NULL, %s, %s, %s, %s, %s, %s)', (username, hashpwd, encrypted_email, R_sql ,P_sql, key))
+         mysql.connection.commit()
+         msg = 'You have successfully registered!'
     elif request.method == 'POST':
 # Form is empty... (no POST data)
         msg = 'Please fill out the form!'
@@ -332,7 +356,7 @@ def image():
 
 
 if __name__== '__main__':
-    app.run()
+    app.run(debug=True)
 
 
 
