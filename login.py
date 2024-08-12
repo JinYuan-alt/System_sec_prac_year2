@@ -82,7 +82,7 @@ def login():
      username = request.form['username']
      password = request.form['password']
      if username == 'admin123' and password == 'admin123':
-         return render_template('home.html')
+         return render_template('admin.html')
      # Check if account exists using MySQL
      cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
      cursor.execute('SELECT * FROM accounts WHERE username = %s',(username,))#hash passwd will never match plaintext passwd
