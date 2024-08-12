@@ -15,6 +15,8 @@ from password_strength import PasswordPolicy
 from password_strength import PasswordStats
 from PIL.ExifTags import TAGS
 from iptcinfo3 import IPTCInfo
+from datetime import datetime, timedelta
+
 
 
 #user Karen password Kimster/Kimmy
@@ -29,7 +31,7 @@ app = Flask(__name__)
 
 bcrypt = Bcrypt(app)
 
-app.config['temp']=datetime.timedelta(days=1)
+app.config['temp']=timedelta(days=1)
 app.config['uploads'] = os.path.join(basedir, 'uploads')
 app.config['sanitized']= os.path.join(basedir, 'static/sanitized')
 # Change this to your secret key (can be anything, it's for extra protection)
@@ -90,6 +92,8 @@ def login():
          return render_template('admin.html')
      # Check if account exists using MySQL
      cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+     cursor.execute('SELECT * FROM login_attempts WHERE username = %s', (username,))
+     login_attempt = cursor.fetchone()
      cursor.execute('SELECT * FROM accounts WHERE username = %s',(username,))#hash passwd will never match plaintext passwd
      account=cursor.fetchone() # Fetch one record and return result
      if account is not None:
@@ -103,26 +107,39 @@ def login():
            key=cursor.fetchone()
            C_key=key['symm_key']
            encrypted_email=account['email'].encode()
-           #file=open('symmetric.key','rb')
-           #key=file.read()
-           #file.close()
            f=Fernet(C_key)
            # Redirect to home page
            decrypted_email=f.decrypt(encrypted_email)
            print(decrypted_email)
            session.pop('temp', None)
-           return expiry(username)
-           #perma = str(uuid.uuid4())
-           #session['temp'] = username + password + perma
-           #return 'Logged in successfully! My email: ' + decrypted_email.decode()
+           if login_attempt:
+               if login_attempt['attempts'] >= 2:
+                   # Check if the block period has passed
+                   last_attempt = login_attempt['last_attempt']
+                   block_until = last_attempt + timedelta(minutes=5)
+                   print(block_until)
+                   if datetime.now() < block_until:
+                       msg = 'Too many failed attempts. Try again later.'
+                       return render_template('login.html', msg=msg, form=formL)
+                   else:
+                       # Reset the failed attempts after the block period
+                       cursor.execute('UPDATE login_attempts SET attempts = 0 WHERE username = %s', (username,))
+                       mysql.connection.commit()
+                       return expiry(username)
+           else: return expiry(username)
          else:
            # Account doesn’t exist or username/password incorrect
            failed_attempts.append('failed')
            a = len(failed_attempts)
            if 'temp' in session:
+             cursor.execute(
+                   'UPDATE login_attempts SET attempts = %s, last_attempt = %s WHERE username = %s',
+                   (a,datetime.now(), username))
              logging(session['temp'], password, username, a)
            else:
-               logging(sesh=str(uuid.uuid4())+'false_alert', p=password, u=username, a=a)
+               cursor.execute('INSERT INTO login_attempts (username, attempts, last_attempt) VALUES (%s, %s, %s)',
+                              (username, a, datetime.now()))
+               logging(sesh=str(uuid.uuid4()), p=password, u=username, a=a)
            # Show the login form with message (if any)
      else:
          return render_template('register.html')
@@ -135,14 +152,45 @@ def secure_login():
         username = request.form['username']
         password = request.form['password']
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+        # Check if the user is blocked
+        cursor.execute('SELECT * FROM login_attempts WHERE username = %s', (username,))
+        login_attempt = cursor.fetchone()
+
+        if login_attempt:
+            if login_attempt['attempts'] >= 5:
+                # Check if the block period has passed
+                last_attempt = login_attempt['last_attempt']
+                block_until = last_attempt + timedelta(minutes=5)
+                if datetime.now() < block_until:
+                    msg = 'Too many failed attempts. Try again later.'
+                    return render_template('secure_login.html', msg=msg)
+                else:
+                    # Reset the failed attempts after the block period
+                    cursor.execute('UPDATE login_attempts SET attempts = 0 WHERE username = %s', (username,))
+                    mysql.connection.commit()
+
         cursor.execute('SELECT * FROM accounts WHERE username = %s', (username,))
         account = cursor.fetchone()
+
         if account and bcrypt.check_password_hash(account['password'], password):
             session['loggedin'] = True
             session['id'] = account['id']
             session['username'] = account['username']
+            # Reset failed attempts on successful login
+            cursor.execute('DELETE FROM login_attempts WHERE username = %s', (username,))
+            mysql.connection.commit()
             return 'Secure login successful!'
         else:
+            # Increment failed attempts
+            if login_attempt:
+                cursor.execute(
+                    'UPDATE login_attempts SET attempts = attempts + 1, last_attempt = %s WHERE username = %s',
+                    (datetime.now(), username))
+            else:
+                cursor.execute('INSERT INTO login_attempts (username, attempts, last_attempt) VALUES (%s, 1, %s)',
+                               (username, datetime.now()))
+            mysql.connection.commit()
             msg = 'Incorrect username/password!'
     return render_template('secure_login.html', msg=msg)
 @app.route('/vulnerable_login', methods=['GET', 'POST'])

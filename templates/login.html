@@ -26,6 +26,7 @@
       {% for error in form.recaptcha.errors %}
         <ul>
           <li style="color:red;">{{ error }}</li>
+          <li style="color:red">{{ msg }}</li>
         </ul>
       {% endfor %}
       <input type="submit" value="Submit" style="margin-top: 40px;">
