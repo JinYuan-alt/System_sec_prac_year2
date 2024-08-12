@@ -11,6 +11,8 @@ import os
 from flask_wtf import FlaskForm, RecaptchaField
 from wtforms import StringField, PasswordField
 from wtforms.validators import InputRequired, Length, AnyOf
+from password_strength import PasswordPolicy
+from password_strength import PasswordStats
 from PIL.ExifTags import TAGS
 from iptcinfo3 import IPTCInfo
 
@@ -82,6 +84,7 @@ def login():
      username = request.form['username']
      password = request.form['password']
      if username == 'admin123' and password == 'admin123':
+         session['loggedin'] = True
          return render_template('admin.html')
      # Check if account exists using MySQL
      cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
