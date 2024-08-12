@@ -23,6 +23,7 @@ from datetime import datetime, timedelta
 #user Ted password Teddy (to present expiry date working)
 #Bobmyskrm password Bobby
 #Bivol password Soviet
+#MoguM1 password MoguM1 email: MoguM1@gmail.com
 
 
 
@@ -57,6 +58,13 @@ failed_attempts=[]
 NonSan_filepath=[]
 San_filepath=[]
 Post_text=[]
+
+policy = PasswordPolicy.from_names(
+    length=1,       # Min length: 1 character
+    uppercase=1,    # Min 1 uppercase letter
+    numbers=1,       # Min 1 digit
+    strength = 0.10
+)
 
 
 class LoginForm(FlaskForm):
@@ -254,6 +262,17 @@ def register():
         confirm_password = request.form['confirm_password']
         email = request.form['email']
         key = Fernet.generate_key()
+        checkpolicy = policy.test(password)
+        stats = PasswordStats(password)
+        if checkpolicy:
+            # Create a detailed error message
+            flash("Password does not meet the following criteria: " + ", ".join([str(rule) for rule in checkpolicy]))
+            return render_template('register.html', msg='Password does not meet the required criteria.')
+        if stats.strength() < 0.10:
+            flash("Password not strong enough. It must have an entropy strength of at least 0.10.")
+            return render_template('register.html', msg='Password does not meet the required criteria.')
+        if password != confirm_password:
+            msg = 'Passwords do not match!'
         if password != confirm_password:
             msg = 'Passwords do not match!'
         else:
