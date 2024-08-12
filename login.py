@@ -119,28 +119,68 @@ def first():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
- msg = ''
- formL = LoginForm()
+    msg = ''
+
+        # Google OAuth
+    if google.authorized:
+        try:
+            resp = google.get("/oauth2/v2/userinfo")
+            resp.raise_for_status()  # Raises HTTPError for bad responses
+            google_info = resp.json()
+            google_id = google_info["id"]
+            email = google_info["email"]
+            username = google_info.get("name", "Google User")
+        except AssertionError:
+            msg = 'Failed to retrieve user information from Google. Please try again.'
+            return render_template('index.html', msg=msg)
+        except Exception as e:
+            msg = f'An unexpected error occurred: {str(e)}'
+            return render_template('index.html', msg=msg)
+
+        # Check if the user already exists in the `google` table
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute('SELECT * FROM google WHERE google_id = %s', (google_id,))
+        google_account = cursor.fetchone()
+
+        if google_account:
+            # Load related account data from `accounts` table
+            cursor.execute('SELECT * FROM accounts1 WHERE email = %s', (email,))
+            account = cursor.fetchone()
+            if account:
+                session['loggedin'] = True
+                session['id'] = account['id']
+                session['username'] = account['username']
+                session['email'] = account['email']
+                session['google_id'] = google_account['google_id']
+                session['role_id'] = account['role_id']
+                return redirect(url_for('home'))
+        else:
+            return redirect(url_for('register'))
+
+        if account is None:
+            msg = 'Incorrect username/password!'
+            return render_template('index.html', msg=msg)
+    formL = LoginForm()
  # Check if "username" and "password" POST requests exist (user submitted form)
- if request.method == 'POST' and 'username' in request.form and 'password' in request.form and 'g-recaptcha-response' in request.form:
+    if request.method == 'POST' and 'username' in request.form and 'password' in request.form and 'g-recaptcha-response' in request.form:
      # Create variables for easy access
-     if request.form['g-recaptcha-response'] == '':
+      if request.form['g-recaptcha-response'] == '':
          return render_template('index.html', form=formL)
-     username = request.form['username']
-     password = request.form['password']
-     if username == 'admin123' and password == 'admin123':
+      username = request.form['username']
+      password = request.form['password']
+      if username == 'admin123' and password == 'admin123':
          session['username']= 'admin123'
          session['password']= 'admin123'
          session['loggedin'] = True
          session['id']= '10101010'
          return render_template('admin.html')
      # Check if account exists using MySQL
-     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-     cursor.execute('SELECT * FROM login_attempts WHERE username = %s', (username,))
-     login_attempt = cursor.fetchone()
-     cursor.execute('SELECT * FROM accounts WHERE username = %s',(username,))#hash passwd will never match plaintext passwd
-     account=cursor.fetchone() # Fetch one record and return result
-     if account is not None:
+      cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+      cursor.execute('SELECT * FROM login_attempts WHERE username = %s', (username,))
+      login_attempt = cursor.fetchone()
+      cursor.execute('SELECT * FROM accounts WHERE username = %s',(username,))#hash passwd will never match plaintext passwd
+      account=cursor.fetchone() # Fetch one record and return result
+      if account is not None:
          user_hashpwd = account['password']
          if account and bcrypt.check_password_hash(user_hashpwd, password):#hash passwd user gave than check
            # Create session data, we can access this data in other routes
@@ -184,9 +224,9 @@ def login():
                               (username, a, datetime.now()))
                logging(sesh=str(uuid.uuid4()), p=password, u=username, a=a)
            # Show the login form with message (if any)
-     else:
+      else:
          return render_template('register.html')
- return render_template('index.html',msg='',form=formL)
+    return render_template('index.html',msg='',form=formL)
 
 @app.route('/secure_login', methods=['GET', 'POST'])
 def secure_login():
@@ -274,12 +314,41 @@ def display_log():
     cursor.execute("SELECT * FROM tests")
     a = cursor.fetchall
 
+@app.route('/logout/google')
+def google_logout():
+    token = blueprint.token["access_token"]
+    resp = google.post(
+        "https://accounts.google.com/o/oauth2/revoke",
+        params={"token": token},
+        headers={"content-type": "application/x-www-form-urlencoded"}
+    )
+    assert resp.ok, resp.text
+    logout()  # Flask-Login's logout
+    return redirect(url_for('login'))
+
+@app.route('/clear-session')
+def clear_session():
+    session.clear()
+    return 'Session cleared!'
+
+
 @app.route('/MyWebApp/logout')
 def logout():
 # Remove session data, this will log the user out
   session.pop('loggedin', None)
   session.pop('id', None)
   session.pop('username', None)
+  session.pop('email', None)
+  session.pop('google_id', None)
+  session.pop('role_id', None)
+  clear_session()
+    # Also log out from Google if logged in via Google
+  if google.authorized:
+        token = blueprint.token["access_token"]
+        resp = google.post('https://accounts.google.com/o/oauth2/revoke',
+                           params={'token': token},
+                           headers={'content-type': 'application/x-www-form-urlencoded'})
+        assert resp.ok, resp.text
 # Redirect to login page
   return redirect(url_for('login'))
 
@@ -289,6 +358,43 @@ def logout():
 def register():
 # Output message if something goes wrong...
     msg = ''
+    if google.authorized:
+        resp = google.get("/oauth2/v2/userinfo")
+        resp.raise_for_status()
+        assert resp.ok, resp.text
+        google_info = resp.json()
+        google_id = google_info["id"]
+        email = google_info["email"]
+        username = google_info.get("name", "Google User")
+        picture = google_info.get("picture", None)
+
+        # Check if the user already exists in the `google` table
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute('SELECT * FROM google WHERE google_id = %s OR email = %s', (google_id, email))
+        google_account = cursor.fetchone()
+
+        if google_account:
+            msg = 'Account already exists! Please log in.'
+            return redirect(url_for('login'))
+
+        # Insert Google user data into `google` table
+        cursor.execute('INSERT INTO google (username, email, google_id, role_id) VALUES (%s, %s, %s, %s)',
+                       (username, email, google_id, 1))
+        mysql.connection.commit()
+
+        # Insert related data into `accounts` table
+        cursor.execute('INSERT INTO accounts1 (username, email, role_id) VALUES (%s, %s, %s)',
+                       (username, email, 1))
+        mysql.connection.commit()
+
+        session['loggedin'] = True
+        session['id'] = cursor.lastrowid
+        session['username'] = username
+        session['email'] = email
+        session['google_id'] = google_id
+        session['role_id'] = 1
+
+        return redirect(url_for('home'))
 # Check if "username", "password" and "email" POST requests exist (user submitted form)
     if request.method == 'POST' and 'username' in request.form and 'password' in request.form and'email' in request.form:
 # Create variables for easy access
