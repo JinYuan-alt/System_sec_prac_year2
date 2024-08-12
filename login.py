@@ -499,8 +499,8 @@ def presanitize():
         ls.append(f"{tagname:25}: {value}")
       ls.append(xmpdata)
       ls.append(info)
-      return render_template('check_sanIMG.html', presan=ls)
-    return render_template('check_sanIMG.html')
+      return render_template('pre_sanIMG.html', presan=ls)
+    return render_template('pre_sanIMG.html')
 
 
 

@@ -5,7 +5,7 @@
 {% block content %}
 <h2>table</h2>
 <body>
-<form action="/presan" method="post">
+<form action="{{url_for('presanitize')}}" method="post">
     <label for="presan">Push to view metadata before sanitization</label>
     <input id="presan" type="submit" name="presan" value="presan">
 </form>
