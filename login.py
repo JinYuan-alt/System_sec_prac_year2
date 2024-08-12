@@ -206,7 +206,7 @@ def login():
                        return render_template('login.html', msg='Too many failed attempts. Try again later.', form=formL)
                    else:
                        # Reset the failed attempts after the block period
-                       cursor.execute('UPDATE login_attempts SET attempts = 0 WHERE username = %s', (username,))
+                       cursor.execute('DELETE FROM login_attempts WHERE username = %s', (username,))
                        mysql.connection.commit()
                        return expiry(username)
            else: return expiry(username)
@@ -533,11 +533,12 @@ def expiry(U_name):
        e_yr=e[0]
        e_month=e[1]
        e_day=e[2]
-       print(e_day,e_month,e_yr)
        print(date_sql)
-       if date_sql == expiration[0:10] or int(e_yr)<int(yr):
+       if int(e_yr)<int(yr):
            return redirect(url_for('update'))
        if int(e_day)<int(day) and int(e_month)<=int(month):
+           return redirect(url_for('update'))
+       if int(e_yr)==int(yr) and int(e_day)==int(day) and int(e_month)==int(month):
            return redirect(url_for('update'))
        else:
            return home()
