@@ -44,6 +44,7 @@ app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
 app.config['MYSQL_PASSWORD'] = 'ihatenyp1234'
 app.config['MYSQL_DB'] = 'pythonlogin2'
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(seconds=5)
 time_list=[]
 #DO NOTE THAT THE MYSQL SERVER INSTANCE IN THE LAB IS RUNNING ON PORT 3360.
 #Please make necessary change to the above MYSQL_PORT config
@@ -131,6 +132,7 @@ def login():
             google_id = google_info["id"]
             email = google_info["email"]
             username = google_info.get("name", "Google User")
+            session.permanent = True
         except AssertionError:
             msg = 'Failed to retrieve user information from Google. Please try again.'
             return render_template('index.html', msg=msg, form=formL)
@@ -173,6 +175,7 @@ def login():
          session['password']= 'admin123'
          session['loggedin'] = True
          session['id']= '10101010'
+         session.permanent = True
          return render_template('admin.html')
      # Check if account exists using MySQL
       cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
@@ -208,6 +211,7 @@ def login():
                        # Reset the failed attempts after the block period
                        cursor.execute('DELETE FROM login_attempts WHERE username = %s', (username,))
                        mysql.connection.commit()
+                       session.permanent = True
                        return expiry(username)
            else: return expiry(username)
          else:
